@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
+import 'main_wrapper.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
-
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -13,11 +11,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainWrapper()));
+      }
     });
   }
 
@@ -28,7 +25,7 @@ class _SplashScreenState extends State<SplashScreen> {
         width: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1A237E), Color(0xFF42A5F5)],
+            colors: [Color(0xFF2193b0), Color(0xFF6dd5ed)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -36,21 +33,21 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.bolt_rounded, size: 100, color: Colors.white),
-            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.health_and_safety, size: 80, color: Colors.white),
+            ),
+            const SizedBox(height: 24),
             const Text(
               "HealthNode",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-              ),
+              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.5),
             ),
-            const Text(
-              "AI-Driven Emergency Logistics",
-              style: TextStyle(color: Colors.white70, fontSize: 14),
-            ),
+            const SizedBox(height: 10),
+            const Text("Your Health, Our Priority", style: TextStyle(color: Colors.white70, fontSize: 16)),
           ],
         ),
       ),
