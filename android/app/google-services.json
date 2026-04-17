@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "897904520286",
+    "project_id": "healthnode-1a0cc",
+    "storage_bucket": "healthnode-1a0cc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:897904520286:android:6937c63ea3a13f716bd8cf",
+        "android_client_info": {
+          "package_name": "com.example.healthnode"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0AHYaWEImGd29WQrI5st6SEaY-Tst6Wk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
