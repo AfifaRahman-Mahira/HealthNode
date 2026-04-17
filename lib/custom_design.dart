@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 class CustomTextField extends StatelessWidget {
   final String hint;
   final TextEditingController controller;
-  final String? label; 
-  final IconData? icon; 
+  final String? label;
+  final IconData? icon;
   final bool isPassword;
 
   const CustomTextField({
@@ -19,15 +19,15 @@ class CustomTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: TextField(
         controller: controller,
         obscureText: isPassword,
         decoration: InputDecoration(
+          labelText: label,
           hintText: hint,
-          labelText: label ?? hint,
           prefixIcon: icon != null ? Icon(icon) : null,
-          border: const OutlineInputBorder(),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
     );
@@ -37,14 +37,23 @@ class CustomTextField extends StatelessWidget {
 class CustomButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
+
   const CustomButton({super.key, required this.text, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 50,
-      child: ElevatedButton(onPressed: onPressed, child: Text(text)),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.all(15),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        onPressed: onPressed,
+        child: Text(text),
+      ),
     );
   }
 }

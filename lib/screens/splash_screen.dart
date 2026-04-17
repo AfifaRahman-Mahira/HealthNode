@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'main_wrapper.dart';
+import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,7 +13,10 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainWrapper()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
       }
     });
   }
@@ -39,15 +42,27 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.health_and_safety, size: 80, color: Colors.white),
+              child: const Icon(
+                Icons.health_and_safety,
+                size: 80,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 24),
             const Text(
               "HealthNode",
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.5),
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 1.5,
+              ),
             ),
             const SizedBox(height: 10),
-            const Text("Your Health, Our Priority", style: TextStyle(color: Colors.white70, fontSize: 16)),
+            const Text(
+              "Your Health, Our Priority",
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+            ),
           ],
         ),
       ),
