@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'patient_home.dart'; // Ensure this matches your search page file name
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -11,77 +14,130 @@ class MainWrapper extends StatefulWidget {
 
 class _MainWrapperState extends State<MainWrapper> {
   int _currentIndex = 0;
+  final AuthService _authService = AuthService();
+  String? userRole; 
+  bool isLoading = true;
 
- 
-  final List<Widget> _pages = [
-    const PatientLandingPage(),
-    const Center(
-      child: Text(
-        "Pharmacy Services - Access Granted",
-        style: TextStyle(fontWeight: FontWeight.bold),
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthAndRole();
+  }
+
+  // Fetch user role from Firestore to determine dashboard layout
+  Future<void> _checkAuthAndRole() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists && mounted) {
+          setState(() {
+            userRole = userDoc['role']; 
+            isLoading = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) setState(() => isLoading = false);
+      }
+    } else {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  // Handles navigation between BottomNavBar tabs
+  void _onTabChange(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  // Returns the correct Home view based on the user's role
+  Widget _getHomeDashboard() {
+    if (userRole == "Admin") {
+      return const Center(child: Text("Admin Control Panel", style: TextStyle(fontSize: 18)));
+    } else if (userRole == "Pharmacist") {
+      return const Center(child: Text("Pharmacist Inventory Dashboard")); 
+    } else if (userRole == "Rider") {
+      return const Center(child: Text("Rider Delivery Panel"));
+    } else if (userRole == "Patient") {
+      // Week 4: Buttons on this page trigger tab switching via onActionTap
+      return PatientLandingPage(onActionTap: _onTabChange);
+    } else {
+      return _buildGuestWelcome();
+    }
+  }
+
+  Widget _buildGuestWelcome() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.medical_services_outlined, size: 80, color: Colors.grey),
+          const SizedBox(height: 20),
+          const Text("Welcome to HealthNode", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+            child: Text("Please login to access specialized services.", textAlign: TextAlign.center),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+            child: const Text("Go to Login"),
+          )
+        ],
       ),
-    ),
-    const Center(
-      child: Text(
-        "Profile Settings",
-        style: TextStyle(fontWeight: FontWeight.bold),
-      ),
-    ),
-  ];
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
- 
-    final user = FirebaseAuth.instance.currentUser;
-    bool isLoggedIn = user != null;
+    if (isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // Logic to switch between Home, Search, and Profile
+    Widget currentBody;
+    if (_currentIndex == 0) {
+      currentBody = _getHomeDashboard();
+    } else if (_currentIndex == 1) {
+      currentBody = const PatientHome(); // Unified Search Page for Week 4
+    } else {
+      currentBody = const ProfilePage();
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        title: const Text(
-          "HealthNode",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
+        title: const Text("HealthNode", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         actions: [
-
-          if (!isLoggedIn)
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: TextButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                ),
-                icon: const Icon(Icons.login, size: 18),
-                label: const Text("Login"),
-              ),
-            )
-          else
-            
+          if (userRole != null)
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.redAccent),
               onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                setState(() {}); 
+                await _authService.signOut();
+                if (mounted) {
+                  setState(() { 
+                    userRole = null; 
+                    _currentIndex = 0; 
+                  });
+                }
               },
             ),
-          const Icon(Icons.notifications_none_rounded, color: Colors.black),
-          const SizedBox(width: 15),
         ],
       ),
-      body: _pages[_currentIndex],
+      body: currentBody,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         selectedItemColor: const Color(0xFF2193b0),
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: _onTabChange,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.local_pharmacy),
-            label: "Pharmacy",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
@@ -89,85 +145,44 @@ class _MainWrapperState extends State<MainWrapper> {
   }
 }
 
+// --- Patient Dashboard Component (Week 4 Features) ---
 class PatientLandingPage extends StatelessWidget {
-  const PatientLandingPage({super.key});
+  final Function(int) onActionTap;
+  const PatientLandingPage({super.key, required this.onActionTap});
 
   @override
   Widget build(BuildContext context) {
-    
     final user = FirebaseAuth.instance.currentUser;
-    String displayName = user != null
-        ? (user.email?.split('@')[0] ?? "User")
-        : "Guest";
+    String displayName = user?.email?.split('@')[0].toUpperCase() ?? "PATIENT";
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-    
-          Text(
-            "Hello, ${displayName.toUpperCase()}!",
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-          ),
-          const Text(
-            "Explore our health services today",
-            style: TextStyle(color: Colors.grey),
-          ),
+          Text("Hello, $displayName!", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+          const Text("Explore our health services today", style: TextStyle(color: Colors.grey)),
           const SizedBox(height: 25),
-
-          // ইমারজেন্সি কার্ড
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFff416c), Color(0xFFff4b2b)],
-              ),
-            ),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    "Emergency?\nFind medicine fast",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.red,
-                  ),
-                  onPressed: () {},
-                  child: const Text("Locate Now"),
-                ),
-              ],
-            ),
-          ),
-
+          
+          // Emergency Banner triggers Search Tab (Index 1)
+          _buildEmergencyBanner(() => onActionTap(1)),
+          
           const SizedBox(height: 30),
-          const Text(
-            "Quick Actions",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+          const Text("Quick Actions", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 15),
-
-          // গ্রিড কার্ডস
+          
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisCount: 2,
             crossAxisSpacing: 15,
             mainAxisSpacing: 15,
+            childAspectRatio: 1.3,
             children: [
-              _buildActionCard(Icons.search, "Pharmacy", Colors.blue),
-              _buildActionCard(Icons.medication, "Medicines", Colors.orange),
-              _buildActionCard(Icons.delivery_dining, "Rider", Colors.green),
-              _buildActionCard(Icons.admin_panel_settings, "Admin", Colors.red),
+              _buildActionCard(Icons.search, "Search Pharmacy", Colors.blue, () => onActionTap(1)),
+              _buildActionCard(Icons.medication, "Medicines", Colors.orange, () => onActionTap(1)),
+              _buildActionCard(Icons.delivery_dining, "Track Rider", Colors.green, () {}),
+              _buildActionCard(Icons.admin_panel_settings, "Support", Colors.red, () {}),
             ],
           ),
         ],
@@ -175,28 +190,73 @@ class PatientLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCard(IconData icon, String title, Color color) {
+  Widget _buildEmergencyBanner(VoidCallback onTap) {
     return Container(
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(colors: [Color(0xFFff416c), Color(0xFFff4b2b)]),
+      ),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text("Emergency?\nFind medicine fast", 
+              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.red),
+            onPressed: onTap, 
+            child: const Text("Locate Now"),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActionCard(IconData icon, String title, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4))],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 35, color: color),
+            const SizedBox(height: 10),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- Profile Page (Cleaned Version) ---
+class ProfilePage extends StatelessWidget {
+  const ProfilePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircleAvatar(
-            backgroundColor: color.withOpacity(0.1),
-            child: Icon(icon, size: 30, color: color),
+          const CircleAvatar(
+            radius: 50, 
+            backgroundColor: Color(0xFF2193b0), 
+            child: Icon(Icons.person, size: 50, color: Colors.white)
           ),
+          const SizedBox(height: 20),
+          Text(user?.email ?? "Guest User", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
           const SizedBox(height: 10),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          // Academic info removed as requested
+          const Text("Account Status: Active", style: TextStyle(color: Colors.grey)),
         ],
       ),
     );
