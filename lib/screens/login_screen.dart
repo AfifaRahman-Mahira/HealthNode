@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'main_wrapper.dart';
-import 'register_screen.dart'; // রেজিস্ট্রেশন ফাইলটা ইমপোর্ট থাকতে হবে
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -116,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                     const SizedBox(height: 15),
-                    // এই যে তোর রেজিস্ট্রেশন অপশন!
+                   
                     TextButton(
                       onPressed: () {
                         Navigator.push(
