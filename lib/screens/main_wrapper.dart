@@ -12,7 +12,7 @@ class MainWrapper extends StatefulWidget {
 class _MainWrapperState extends State<MainWrapper> {
   int _currentIndex = 0;
 
-  // লগইন করার পর ড্যাশবোর্ড দেখানোর জন্য পেজ লিস্ট
+ 
   final List<Widget> _pages = [
     const PatientLandingPage(),
     const Center(
@@ -31,7 +31,7 @@ class _MainWrapperState extends State<MainWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    // চেক করা হচ্ছে ইউজার লগইন কি না
+ 
     final user = FirebaseAuth.instance.currentUser;
     bool isLoggedIn = user != null;
 
@@ -45,7 +45,7 @@ class _MainWrapperState extends State<MainWrapper> {
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         actions: [
-          // যদি লগইন না থাকে তবেই লগইন বাটন দেখাবে
+
           if (!isLoggedIn)
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
@@ -59,12 +59,12 @@ class _MainWrapperState extends State<MainWrapper> {
               ),
             )
           else
-            // লগইন থাকলে লগআউট বাটন দেখাবে
+            
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.redAccent),
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
-                setState(() {}); // ইউআই রিফ্রেশ করবে
+                setState(() {}); 
               },
             ),
           const Icon(Icons.notifications_none_rounded, color: Colors.black),
@@ -94,7 +94,7 @@ class PatientLandingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ইউজারের নাম নেওয়ার চেষ্টা
+    
     final user = FirebaseAuth.instance.currentUser;
     String displayName = user != null
         ? (user.email?.split('@')[0] ?? "User")
@@ -105,7 +105,7 @@ class PatientLandingPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // মাহীরার সেই ডিজাইন কিন্তু নাম ডাইনামিক
+    
           Text(
             "Hello, ${displayName.toUpperCase()}!",
             style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
@@ -182,7 +182,7 @@ class PatientLandingPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12, // এখানে black12 দে, এরর চলে যাবে
+            color: Colors.black12,
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
