@@ -17,7 +17,7 @@ void main() async {
     ),
   );
 
-  // অ্যাপ রান হলেই যাতে পুরনো লগইন না থাকে, তাই এটা দিলাম
+ 
   await FirebaseAuth.instance.signOut();
 
   runApp(const MyApp());
