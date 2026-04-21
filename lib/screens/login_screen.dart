@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_design.dart'; 
-import '../services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'main_wrapper.dart';
 import 'register_screen.dart';
 
@@ -12,41 +11,130 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final AuthService _authService = AuthService();
+  final _email = TextEditingController();
+  final _pass = TextEditingController();
+  bool isLoading = false;
 
-  void _login() async {
-    String? role = await _authService.loginUser(emailController.text, passwordController.text);
-    if (role != null) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainWrapper()));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Login Failed!")));
+  Future<void> login() async {
+    if (_email.text.isEmpty || _pass.text.isEmpty) return;
+    setState(() => isLoading = true);
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _email.text.trim(),
+        password: _pass.text.trim(),
+      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MainWrapper()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(25.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 60),
-              const Icon(Icons.health_and_safety, size: 80, color: Color(0xFF2193b0)),
-              const Text("HealthNode Login", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 40),
-              CustomTextField(hint: "Email", controller: emailController, icon: Icons.email_outlined),
-              const SizedBox(height: 15),
-              CustomTextField(hint: "Password", controller: passwordController, icon: Icons.lock_outline, isPassword: true),
-              const SizedBox(height: 30),
-              CustomButton(text: "LOGIN", onPressed: _login),
-              TextButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
-                child: const Text("Create New Account"),
-              )
-            ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0F2027), Color(0xFF2C5364)],
+            begin: Alignment.topCenter,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(25),
+            child: Card(
+              color: Colors.white.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(25),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.lock_person,
+                      size: 60,
+                      color: Colors.cyanAccent,
+                    ),
+                    const SizedBox(height: 15),
+                    const Text(
+                      "Login",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    TextField(
+                      controller: _email,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: "Email",
+                        labelStyle: TextStyle(color: Colors.white70),
+                        prefixIcon: Icon(Icons.email, color: Colors.cyanAccent),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: _pass,
+                      obscureText: true,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: "Password",
+                        labelStyle: TextStyle(color: Colors.white70),
+                        prefixIcon: Icon(Icons.lock, color: Colors.cyanAccent),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    isLoading
+                        ? const CircularProgressIndicator()
+                        : ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.cyanAccent,
+                              minimumSize: const Size(double.infinity, 50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: login,
+                            child: const Text(
+                              "LOGIN",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                    const SizedBox(height: 15),
+                   
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RegisterScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        "Don't have an account? Register Now",
+                        style: TextStyle(color: Colors.cyanAccent),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
