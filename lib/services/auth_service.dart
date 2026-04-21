@@ -9,7 +9,6 @@ class AuthService {
 
   UserModel? currentUser;
 
-  // Check if someone is currently signed in
   User? get user => _auth.currentUser;
 
   Future<String?> registerUser({
@@ -44,7 +43,8 @@ class AuthService {
     }
   }
 
-  Future<String?> loginUser(String email, String password) async {
+  // ড্রপডাউন থেকে আসা selectedRole প্যারামিটারটি এখানে চেক হবে
+  Future<UserModel?> loginUser(String email, String password, String selectedRole) async {
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(
           email: email, password: password);
@@ -54,14 +54,23 @@ class AuthService {
 
         if (doc.exists) {
           Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-          currentUser = UserModel(
-            uid: result.user!.uid,
-            name: data['name'] ?? '',
-            email: data['email'] ?? '',
-            role: data['role'] ?? 'Patient',
-            pharmacyName: data['pharmacyName'] ?? '',
-          );
-          return currentUser!.role; 
+          String dbRole = data['role'] ?? 'Patient';
+
+          // যদি সিলেক্ট করা রোলের সাথে ডাটাবেসের রোল মিলে যায়
+          if (dbRole == selectedRole) {
+            currentUser = UserModel(
+              uid: result.user!.uid,
+              name: data['name'] ?? '',
+              email: data['email'] ?? '',
+              role: dbRole,
+              pharmacyName: data['pharmacyName'] ?? '',
+            );
+            return currentUser;
+          } else {
+            // রোল না মিললে আমরা তাকে লগইন করতে দেব না
+            await _auth.signOut();
+            return null;
+          }
         }
       }
       return null;

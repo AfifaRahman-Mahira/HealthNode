@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../services/auth_service.dart';
 import 'main_wrapper.dart';
 import 'register_screen.dart';
 
@@ -13,20 +13,40 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _pass = TextEditingController();
+  final AuthService _authService = AuthService();
+  
+  String selectedRole = 'Patient';
+  final List<String> roles = ['Patient', 'Pharmacist', 'Rider', 'Admin'];
   bool isLoading = false;
 
   Future<void> login() async {
-    if (_email.text.isEmpty || _pass.text.isEmpty) return;
-    setState(() => isLoading = true);
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _email.text.trim(),
-        password: _pass.text.trim(),
+    if (_email.text.isEmpty || _pass.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fields!")),
       );
-      if (mounted) {
+      return;
+    }
+    
+    setState(() => isLoading = true);
+    
+    try {
+      var userModel = await _authService.loginUser(
+        _email.text.trim(), 
+        _pass.text.trim(),
+        selectedRole,
+      );
+
+      if (userModel != null && mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const MainWrapper()),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Login Failed: Role mismatched or invalid credentials."),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
@@ -82,6 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         labelText: "Email",
                         labelStyle: TextStyle(color: Colors.white70),
                         prefixIcon: Icon(Icons.email, color: Colors.cyanAccent),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white54)),
                       ),
                     ),
                     const SizedBox(height: 15),
@@ -93,11 +114,32 @@ class _LoginScreenState extends State<LoginScreen> {
                         labelText: "Password",
                         labelStyle: TextStyle(color: Colors.white70),
                         prefixIcon: Icon(Icons.lock, color: Colors.cyanAccent),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white54)),
                       ),
                     ),
+                    const SizedBox(height: 25),
+
+                    Theme(
+                      data: Theme.of(context).copyWith(canvasColor: const Color(0xFF2C5364)),
+                      child: DropdownButtonFormField<String>(
+                        value: selectedRole,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          labelText: "Select Role",
+                          labelStyle: TextStyle(color: Colors.cyanAccent),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: roles.map((r) => DropdownMenuItem(
+                          value: r, 
+                          child: Text(r, style: const TextStyle(color: Colors.white))
+                        )).toList(),
+                        onChanged: (v) => setState(() => selectedRole = v!),
+                      ),
+                    ),
+
                     const SizedBox(height: 30),
                     isLoading
-                        ? const CircularProgressIndicator()
+                        ? const CircularProgressIndicator(color: Colors.cyanAccent)
                         : ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.cyanAccent,
@@ -116,7 +158,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                     const SizedBox(height: 15),
-                   
                     TextButton(
                       onPressed: () {
                         Navigator.push(

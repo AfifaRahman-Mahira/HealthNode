@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/auth_service.dart'; // সার্ভিস ইমপোর্ট
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -13,6 +12,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final nameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
+  final AuthService _authService = AuthService(); // সার্ভিস ইনিশিয়ালাইজ
 
   String selectedRole = 'Patient';
   final List<String> roles = ['Patient', 'Pharmacist', 'Rider', 'Admin'];
@@ -30,24 +30,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => isLoading = true);
     try {
-      UserCredential user = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: emailCtrl.text.trim(),
-            password: passCtrl.text.trim(),
-          );
+      // সরাসরি স্ক্রিনে কোড না লিখে AuthService ব্যবহার করা হলো
+      String? result = await _authService.registerUser(
+        name: nameCtrl.text.trim(),
+        email: emailCtrl.text.trim(),
+        password: passCtrl.text.trim(),
+        role: selectedRole,
+      );
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.user!.uid)
-          .set({
-            'uid': user.user!.uid,
-            'name': nameCtrl.text.trim(),
-            'email': emailCtrl.text.trim(),
-            'role': selectedRole,
-            'createdAt': DateTime.now(),
-          });
-
-      if (mounted) {
+      if (result == "success" && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Registration Successful! Please login."),
@@ -55,6 +46,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         );
         Navigator.pop(context);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result ?? "Error occurred")),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(
