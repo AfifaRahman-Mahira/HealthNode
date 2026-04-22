@@ -1,72 +1,140 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_design.dart'; 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'main_wrapper.dart';
-import 'register_screen.dart';
+import 'register_screen.dart'; // রেজিস্ট্রেশন ফাইলটা ইমপোর্ট থাকতে হবে
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
+  State<LoginScreen> createState() => _LoginScreenState();
+}
 
+class _LoginScreenState extends State<LoginScreen> {
+  final _email = TextEditingController();
+  final _pass = TextEditingController();
+  bool isLoading = false;
+
+  Future<void> login() async {
+    if (_email.text.isEmpty || _pass.text.isEmpty) return;
+    setState(() => isLoading = true);
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _email.text.trim(),
+        password: _pass.text.trim(),
+      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MainWrapper()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 60),
-              const Icon(Icons.health_and_safety_rounded, size: 80, color: Color(0xFF2193b0)),
-              const SizedBox(height: 20),
-              const Text(
-                "HealthNode Login", 
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2D3436))
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0F2027), Color(0xFF2C5364)],
+            begin: Alignment.topCenter,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(25),
+            child: Card(
+              color: Colors.white.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
-              const SizedBox(height: 40),
-              CustomTextField(
-                hint: "Email", 
-                label: "Email Address", 
-                controller: emailController, 
-                icon: Icons.email_outlined
-              ),
-              const SizedBox(height: 15),
-              CustomTextField(
-                hint: "Password", 
-                label: "Password", 
-                controller: passwordController, 
-                icon: Icons.lock_outline, 
-                isPassword: true
-              ),
-              const SizedBox(height: 30),
-              CustomButton(
-                text: "LOGIN", 
-                onPressed: () {
-                  // Basic check before navigation
-                  if (emailController.text.isNotEmpty && passwordController.text.isNotEmpty) {
-                    Navigator.pushReplacement(
-                      context, 
-                      MaterialPageRoute(builder: (_) => const MainWrapper())
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Please enter your credentials")),
-                    );
-                  }
-                }
-              ),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: () => Navigator.push(
-                  context, 
-                  MaterialPageRoute(builder: (_) => const RegisterScreen())
+              child: Padding(
+                padding: const EdgeInsets.all(25),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.lock_person,
+                      size: 60,
+                      color: Colors.cyanAccent,
+                    ),
+                    const SizedBox(height: 15),
+                    const Text(
+                      "Login",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    TextField(
+                      controller: _email,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: "Email",
+                        labelStyle: TextStyle(color: Colors.white70),
+                        prefixIcon: Icon(Icons.email, color: Colors.cyanAccent),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: _pass,
+                      obscureText: true,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: "Password",
+                        labelStyle: TextStyle(color: Colors.white70),
+                        prefixIcon: Icon(Icons.lock, color: Colors.cyanAccent),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    isLoading
+                        ? const CircularProgressIndicator()
+                        : ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.cyanAccent,
+                              minimumSize: const Size(double.infinity, 50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: login,
+                            child: const Text(
+                              "LOGIN",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                    const SizedBox(height: 15),
+                    // এই যে তোর রেজিস্ট্রেশন অপশন!
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RegisterScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        "Don't have an account? Register Now",
+                        style: TextStyle(color: Colors.cyanAccent),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text("Create New Account", style: TextStyle(color: Color(0xFF2193b0))),
-              )
-            ],
+              ),
+            ),
           ),
         ),
       ),

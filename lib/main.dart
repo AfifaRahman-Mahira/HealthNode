@@ -1,23 +1,25 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (kIsWeb) {
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "YOUR_API_KEY", 
-        appId: "YOUR_APP_ID", 
-        messagingSenderId: "897904520286",
-        projectId: "healthnode-1a0cc",
-        storageBucket: "healthnode-1a0cc.firebasestorage.app",
-      ),
-    );
-  } else {
-    await Firebase.initializeApp();
-  }
+  await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: "AIzaSyBWHFX56pyZCdw7xYLNv4I1hyn3JpfWKmI",
+      authDomain: "healthnode-1a0cc.firebaseapp.com",
+      projectId: "healthnode-1a0cc",
+      storageBucket: "healthnode-1a0cc.firebasestorage.app",
+      messagingSenderId: "897904520286",
+      appId: "1:897904520286:web:f7cbbdf6278260fc6bd8cf",
+      measurementId: "G-R8YV78JX17",
+    ),
+  );
+
+  // অ্যাপ রান হলেই যাতে পুরনো লগইন না থাকে, তাই এটা দিলাম
+  await FirebaseAuth.instance.signOut();
+
   runApp(const MyApp());
 }
 
@@ -28,8 +30,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, primaryColor: const Color(0xFF2193b0)),
-      home: const SplashScreen(), 
+      title: 'HealthNode',
+      theme: ThemeData(useMaterial3: true),
+      home: const SplashScreen(),
     );
   }
 }
