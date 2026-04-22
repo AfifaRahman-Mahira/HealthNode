@@ -1,20 +1,25 @@
 class UserModel {
-  String? uid, name, email, role, phone;
-  UserModel({this.uid, this.name, this.email, this.role, this.phone});
+  final String uid;
+  final String name;
+  final String email;
+  final String role; 
+  final String? pharmacyName;
 
-  factory UserModel.fromMap(Map<String, dynamic> map) => UserModel(
-    uid: map['uid'],
-    name: map['name'],
-    email: map['email'],
-    role: map['role'],
-    phone: map['phone'],
-  );
+  UserModel({
+    required this.uid,
+    required this.name,
+    required this.email,
+    required this.role,
+    this.pharmacyName,
+  });
 
-  Map<String, dynamic> toMap() => {
-    'uid': uid,
-    'name': name,
-    'email': email,
-    'role': role,
-    'phone': phone,
-  };
+  factory UserModel.fromMap(Map<String, dynamic> data) {
+    return UserModel(
+      uid: data['uid'] ?? '',
+      name: data['name'] ?? '',
+      email: data['email'] ?? '',
+      role: data['role'] ?? 'Patient',
+      pharmacyName: data['pharmacyName'],
+    );
+  }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // রোল সেভ করার জন্য
-import '../custom_design.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -11,49 +10,39 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final nameController = TextEditingController();
+  final nameCtrl = TextEditingController();
+  final emailCtrl = TextEditingController();
+  final passCtrl = TextEditingController();
 
   String selectedRole = 'Patient';
   final List<String> roles = ['Patient', 'Pharmacist', 'Rider', 'Admin'];
   bool isLoading = false;
 
-  // রেজিস্ট্রেশন ফাংশন
-  Future<void> registerUser() async {
-    final name = nameController.text.trim();
-    final email = emailController.text.trim();
-    final password = passwordController.text.trim();
-
-    // ১. ভ্যালিডেশন চেক
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      showError("সবগুলো ঘর পূরণ করো!");
-      return;
-    }
-    if (password.length < 6) {
-      showError("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে!");
-      return;
-    }
-    if (!email.contains('@')) {
-      showError("সঠিক ইমেইল এড্রেস দাও!");
+  Future<void> register() async {
+    if (nameCtrl.text.isEmpty ||
+        emailCtrl.text.isEmpty ||
+        passCtrl.text.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please fill all fields!")));
       return;
     }
 
     setState(() => isLoading = true);
-
     try {
-      // ২. ফায়ারবেস অথেন্টিকেশন
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
+      UserCredential user = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: emailCtrl.text.trim(),
+            password: passCtrl.text.trim(),
+          );
 
-      // ৩. ফায়ারস্টোরে ইউজারের রোল সেভ করা
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(userCredential.user!.uid)
+          .doc(user.user!.uid)
           .set({
-            'uid': userCredential.user!.uid,
-            'name': name,
-            'email': email,
+            'uid': user.user!.uid,
+            'name': nameCtrl.text.trim(),
+            'email': emailCtrl.text.trim(),
             'role': selectedRole,
             'createdAt': DateTime.now(),
           });
@@ -61,81 +50,115 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("রেজিস্ট্রেশন সফল হয়েছে!"),
+            content: Text("Registration Successful! Please login."),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // সফল হলে আগের পেজে ফিরে যাবে
+        Navigator.pop(context);
       }
-    } on FirebaseAuthException catch (e) {
-      // ৪০০ এরর হলে এখানে মেসেজ আসবে
-      showError(e.message ?? "ফায়ারবেস এরর হয়েছে");
     } catch (e) {
-      showError("একটি অজানা ভুল হয়েছে: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
   }
 
-  void showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Create Account"),
-        backgroundColor: Colors.blueAccent,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            CustomTextField(
-              hint: "Full Name",
-              label: "Name",
-              controller: nameController,
-              icon: Icons.person,
-            ),
-            const SizedBox(height: 15),
-            CustomTextField(
-              hint: "example@gmail.com",
-              label: "Email",
-              controller: emailController,
-              icon: Icons.email,
-            ),
-            const SizedBox(height: 15),
-            CustomTextField(
-              hint: "******",
-              label: "Password",
-              controller: passwordController,
-              icon: Icons.lock,
-              isPassword: true,
-            ),
-            const SizedBox(height: 20),
-
-            // রোল সিলেক্টর
-            DropdownButtonFormField<String>(
-              value: selectedRole,
-              decoration: const InputDecoration(
-                labelText: "Select Role",
-                border: OutlineInputBorder(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF2193b0), Color(0xFF6dd5ed)],
+            begin: Alignment.topCenter,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(25),
+            child: Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
-              items: roles
-                  .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                  .toList(),
-              onChanged: (val) => setState(() => selectedRole = val!),
+              child: Padding(
+                padding: const EdgeInsets.all(25),
+                child: Column(
+                  children: [
+                    const Text(
+                      "HealthNode",
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2193b0),
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: "Full Name",
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: emailCtrl,
+                      decoration: const InputDecoration(
+                        labelText: "Email",
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: passCtrl,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: "Password",
+                        prefixIcon: Icon(Icons.lock),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<String>(
+                      value: selectedRole,
+                      decoration: const InputDecoration(
+                        labelText: "Select Role",
+                        border: OutlineInputBorder(),
+                      ),
+                      items: roles
+                          .map(
+                            (r) => DropdownMenuItem(value: r, child: Text(r)),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => selectedRole = v!),
+                    ),
+                    const SizedBox(height: 30),
+                    isLoading
+                        ? const CircularProgressIndicator()
+                        : ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2193b0),
+                              minimumSize: const Size(double.infinity, 50),
+                            ),
+                            onPressed: register,
+                            child: const Text(
+                              "REGISTER",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Back to Login"),
+                    ),
+                  ],
+                ),
+              ),
             ),
-
-            const SizedBox(height: 30),
-
-            isLoading
-                ? const CircularProgressIndicator()
-                : CustomButton(text: "REGISTER NOW", onPressed: registerUser),
-          ],
+          ),
         ),
       ),
     );

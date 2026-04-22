@@ -10,7 +10,9 @@ class PatientHome extends StatelessWidget {
         title: const Text("Patient Home"),
         backgroundColor: const Color(0xFF2193b0),
       ),
-      body: const Center(child: Text("Welcome to Patient Dashboard")),
+      body: const Center(
+        child: Text("Welcome to Patient Dashboard"),
+      ),
     );
   }
 }

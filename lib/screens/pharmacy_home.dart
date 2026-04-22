@@ -10,7 +10,9 @@ class PharmacyHome extends StatelessWidget {
         title: const Text("Pharmacy Home"),
         backgroundColor: Colors.teal,
       ),
-      body: const Center(child: Text("Welcome to Pharmacy Owner Dashboard")),
+      body: const Center(
+        child: Text("Welcome to Pharmacy Owner Dashboard"),
+      ),
     );
   }
 }

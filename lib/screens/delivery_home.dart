@@ -5,6 +5,14 @@ class DeliveryHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text("Delivery Dashboard")));
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Delivery Home"),
+        backgroundColor: Colors.orange,
+      ),
+      body: const Center(
+        child: Text("Welcome to Delivery Dashboard"),
+      ),
+    );
   }
 }
