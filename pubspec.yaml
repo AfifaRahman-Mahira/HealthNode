@@ -13,8 +13,13 @@ dependencies:
   firebase_auth: ^5.0.0
   cloud_firestore: ^5.0.0
   cupertino_icons: ^1.0.2
-  # Week 6: Google Gemini AI integration package
+  
+  # Google Gemini AI integration package
   google_generative_ai: ^0.4.0
+
+  #  Firebase Storage and Image Picking packages
+  firebase_storage: ^12.0.0
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
