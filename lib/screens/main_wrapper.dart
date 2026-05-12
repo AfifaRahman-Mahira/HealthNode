@@ -3,7 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
-import 'patient_home.dart'; // Ensure this matches your search page file name
+import 'patient_home.dart'; 
+import 'admin_dashboard.dart';    // Added
+import 'pharmacy_home.dart';     // Added
+import 'delivery_home.dart';     // Added
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -58,13 +61,12 @@ class _MainWrapperState extends State<MainWrapper> {
   // Returns the correct Home view based on the user's role
   Widget _getHomeDashboard() {
     if (userRole == "Admin") {
-      return const Center(child: Text("Admin Control Panel", style: TextStyle(fontSize: 18)));
+      return const AdminDashboard(); // Connected to AdminDashboard file
     } else if (userRole == "Pharmacist") {
-      return const Center(child: Text("Pharmacist Inventory Dashboard")); 
+      return const PharmacyHome();   // Connected to PharmacyHome file
     } else if (userRole == "Rider") {
-      return const Center(child: Text("Rider Delivery Panel"));
+      return const DeliveryHome();   // Connected to DeliveryHome file
     } else if (userRole == "Patient") {
-      // Week 4: Buttons on this page trigger tab switching via onActionTap
       return PatientLandingPage(onActionTap: _onTabChange);
     } else {
       return _buildGuestWelcome();
@@ -103,7 +105,7 @@ class _MainWrapperState extends State<MainWrapper> {
     if (_currentIndex == 0) {
       currentBody = _getHomeDashboard();
     } else if (_currentIndex == 1) {
-      currentBody = const PatientHome(); // Unified Search Page for Week 4
+      currentBody = const PatientHome(); 
     } else {
       currentBody = const ProfilePage();
     }
@@ -145,7 +147,7 @@ class _MainWrapperState extends State<MainWrapper> {
   }
 }
 
-// --- Patient Dashboard Component (Week 4 Features) ---
+// --- Patient Dashboard Component ---
 class PatientLandingPage extends StatelessWidget {
   final Function(int) onActionTap;
   const PatientLandingPage({super.key, required this.onActionTap});
@@ -164,7 +166,6 @@ class PatientLandingPage extends StatelessWidget {
           const Text("Explore our health services today", style: TextStyle(color: Colors.grey)),
           const SizedBox(height: 25),
           
-          // Emergency Banner triggers Search Tab (Index 1)
           _buildEmergencyBanner(() => onActionTap(1)),
           
           const SizedBox(height: 30),
@@ -236,7 +237,7 @@ class PatientLandingPage extends StatelessWidget {
   }
 }
 
-// --- Profile Page (Cleaned Version) ---
+// --- Profile Page ---
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -255,7 +256,6 @@ class ProfilePage extends StatelessWidget {
           const SizedBox(height: 20),
           Text(user?.email ?? "Guest User", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
           const SizedBox(height: 10),
-          // Academic info removed as requested
           const Text("Account Status: Active", style: TextStyle(color: Colors.grey)),
         ],
       ),
