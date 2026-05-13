@@ -12,8 +12,14 @@ class _PatientHomeState extends State<PatientHome> {
   String searchQuery = "";
   String selectedCategory = "All";
 
-  // Categories list for filtering - Week 4 Feature
-  final List<String> categories = ["All", "Fever", "Pain", "Gastric", "Antibiotic"];
+  // Categories list for filtering
+  final List<String> categories = [
+    "All",
+    "Fever",
+    "Pain",
+    "Gastric",
+    "Antibiotic"
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +76,9 @@ class _PatientHomeState extends State<PatientHome> {
                         selectedColor: Colors.white,
                         backgroundColor: Colors.white.withOpacity(0.3),
                         labelStyle: TextStyle(
-                          color: selectedCategory == categories[index] ? const Color(0xFF2193b0) : Colors.white,
+                          color: selectedCategory == categories[index]
+                              ? const Color(0xFF2193b0)
+                              : Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -82,79 +90,103 @@ class _PatientHomeState extends State<PatientHome> {
           ),
         ),
 
-        // Real-time Firestore List with Search and Category Logic
+        // Real-time Firestore List (Fixed Error Logic)
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('medicines').snapshots(),
+            stream:
+                FirebaseFirestore.instance.collection('medicines').snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text("No medicines found in database."));
+                return const Center(
+                    child: Text("No medicines found in database."));
               }
 
-              // Combine Text Search and Category Filtering
+              // ফিক্সড ফিল্টারিং লজিক (Error-Safe)
               var medicineDocs = snapshot.data!.docs.where((doc) {
-                String name = doc['name'].toString().toLowerCase();
-                String category = doc['category'].toString();
-                
+                // ডাটা ম্যাপে কনভার্ট করা হচ্ছে যেন ফিল্ড না থাকলে ক্রাশ না করে
+                Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+                // চেক করছি ফিল্ড আছে কি না, না থাকলে ডিফল্ট ভ্যালু
+                String name = data.containsKey('name')
+                    ? data['name'].toString().toLowerCase()
+                    : "";
+                String category = data.containsKey('category')
+                    ? data['category'].toString()
+                    : "General";
+
                 bool matchesSearch = name.contains(searchQuery);
-                bool matchesCategory = selectedCategory == "All" || category == selectedCategory;
-                
+                bool matchesCategory =
+                    selectedCategory == "All" || category == selectedCategory;
+
                 return matchesSearch && matchesCategory;
               }).toList();
 
               if (medicineDocs.isEmpty) {
-                return const Center(child: Text("No matching medicines found."));
+                return const Center(
+                    child: Text("No matching medicines found."));
               }
 
               return ListView.builder(
                 padding: const EdgeInsets.all(12),
                 itemCount: medicineDocs.length,
                 itemBuilder: (context, index) {
-                  var medicine = medicineDocs[index];
-                  
+                  // ডাটা রিড করার সময় Null Safety চেক
+                  Map<String, dynamic> medicine =
+                      medicineDocs[index].data() as Map<String, dynamic>;
+
+                  String medName = medicine['name'] ?? "Unknown";
+                  String medCat = medicine['category'] ?? "General";
+                  var medPrice = medicine['price'] ?? "0";
+                  var medStock = medicine['stock'] ?? 0;
+
                   return Card(
                     elevation: 3,
                     margin: const EdgeInsets.only(bottom: 15),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15)),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 15, vertical: 8),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: Colors.blue.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.medication_liquid, color: Color(0xFF2193b0), size: 30),
+                        child: const Icon(Icons.medication_liquid,
+                            color: Color(0xFF2193b0), size: 30),
                       ),
                       title: Text(
-                        medicine['name'],
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        medName,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Category: ${medicine['category']}"),
+                          Text("Category: $medCat"),
                           const SizedBox(height: 4),
                           Text(
-                            "Stock: ${medicine['stock']}",
+                            "Stock: $medStock",
                             style: TextStyle(
-                              color: (medicine['stock'] as int) > 0 ? Colors.grey : Colors.red,
+                              color: (medStock is int && medStock > 0)
+                                  ? Colors.grey
+                                  : Colors.red,
                               fontSize: 13,
                             ),
                           ),
                         ],
                       ),
                       trailing: Text(
-                        "${medicine['price']} TK",
+                        "$medPrice TK",
                         style: const TextStyle(
-                          color: Colors.green, 
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18
-                        ),
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18),
                       ),
                     ),
                   );

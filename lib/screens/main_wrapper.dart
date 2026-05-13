@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/auth_service.dart';
+import 'patient_home.dart';
+import 'admin_dashboard.dart';
+import 'pharmacy_home.dart';
+import 'delivery_home.dart';
 import 'login_screen.dart';
-import 'patient_home.dart'; // Ensure this matches your search page file name
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -14,8 +16,7 @@ class MainWrapper extends StatefulWidget {
 
 class _MainWrapperState extends State<MainWrapper> {
   int _currentIndex = 0;
-  final AuthService _authService = AuthService();
-  String? userRole; 
+  String? userRole;
   bool isLoading = true;
 
   @override
@@ -24,7 +25,6 @@ class _MainWrapperState extends State<MainWrapper> {
     _checkAuthAndRole();
   }
 
-  // Fetch user role from Firestore to determine dashboard layout
   Future<void> _checkAuthAndRole() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -36,7 +36,7 @@ class _MainWrapperState extends State<MainWrapper> {
 
         if (userDoc.exists && mounted) {
           setState(() {
-            userRole = userDoc['role']; 
+            userRole = userDoc['role'].toString().toLowerCase();
             isLoading = false;
           });
         }
@@ -48,48 +48,24 @@ class _MainWrapperState extends State<MainWrapper> {
     }
   }
 
-  // Handles navigation between BottomNavBar tabs
   void _onTabChange(int index) {
     setState(() {
       _currentIndex = index;
     });
   }
 
-  // Returns the correct Home view based on the user's role
   Widget _getHomeDashboard() {
-    if (userRole == "Admin") {
-      return const Center(child: Text("Admin Control Panel", style: TextStyle(fontSize: 18)));
-    } else if (userRole == "Pharmacist") {
-      return const Center(child: Text("Pharmacist Inventory Dashboard")); 
-    } else if (userRole == "Rider") {
-      return const Center(child: Text("Rider Delivery Panel"));
-    } else if (userRole == "Patient") {
-      // Week 4: Buttons on this page trigger tab switching via onActionTap
+    if (userRole == "admin") {
+      return const AdminDashboard();
+    } else if (userRole == "pharmacist") {
+      return const PharmacyHome();
+    } else if (userRole == "rider") {
+      return const DeliveryHome();
+    } else if (userRole == "patient") {
       return PatientLandingPage(onActionTap: _onTabChange);
     } else {
       return _buildGuestWelcome();
     }
-  }
-
-  Widget _buildGuestWelcome() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.medical_services_outlined, size: 80, color: Colors.grey),
-          const SizedBox(height: 20),
-          const Text("Welcome to HealthNode", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-            child: Text("Please login to access specialized services.", textAlign: TextAlign.center),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
-            child: const Text("Go to Login"),
-          )
-        ],
-      ),
-    );
   }
 
   @override
@@ -98,12 +74,11 @@ class _MainWrapperState extends State<MainWrapper> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // Logic to switch between Home, Search, and Profile
     Widget currentBody;
     if (_currentIndex == 0) {
       currentBody = _getHomeDashboard();
     } else if (_currentIndex == 1) {
-      currentBody = const PatientHome(); // Unified Search Page for Week 4
+      currentBody = const PatientHome();
     } else {
       currentBody = const ProfilePage();
     }
@@ -113,18 +88,19 @@ class _MainWrapperState extends State<MainWrapper> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        title: const Text("HealthNode", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: const Text("HealthNode",
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         actions: [
           if (userRole != null)
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.redAccent),
               onPressed: () async {
-                await _authService.signOut();
+                await FirebaseAuth.instance.signOut();
                 if (mounted) {
-                  setState(() { 
-                    userRole = null; 
-                    _currentIndex = 0; 
-                  });
+                  Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false);
                 }
               },
             ),
@@ -143,9 +119,28 @@ class _MainWrapperState extends State<MainWrapper> {
       ),
     );
   }
+
+  Widget _buildGuestWelcome() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.medical_services_outlined,
+              size: 80, color: Colors.grey),
+          const SizedBox(height: 20),
+          const Text("Welcome to HealthNode",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          ElevatedButton(
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const LoginScreen())),
+            child: const Text("Go to Login"),
+          )
+        ],
+      ),
+    );
+  }
 }
 
-// --- Patient Dashboard Component (Week 4 Features) ---
 class PatientLandingPage extends StatelessWidget {
   final Function(int) onActionTap;
   const PatientLandingPage({super.key, required this.onActionTap});
@@ -160,17 +155,17 @@ class PatientLandingPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Hello, $displayName!", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-          const Text("Explore our health services today", style: TextStyle(color: Colors.grey)),
+          Text("Hello, $displayName!",
+              style:
+                  const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+          const Text("Explore our health services today",
+              style: TextStyle(color: Colors.grey)),
           const SizedBox(height: 25),
-          
-          // Emergency Banner triggers Search Tab (Index 1)
           _buildEmergencyBanner(() => onActionTap(1)),
-          
           const SizedBox(height: 30),
-          const Text("Quick Actions", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text("Quick Actions",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 15),
-          
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -179,10 +174,14 @@ class PatientLandingPage extends StatelessWidget {
             mainAxisSpacing: 15,
             childAspectRatio: 1.3,
             children: [
-              _buildActionCard(Icons.search, "Search Pharmacy", Colors.blue, () => onActionTap(1)),
-              _buildActionCard(Icons.medication, "Medicines", Colors.orange, () => onActionTap(1)),
-              _buildActionCard(Icons.delivery_dining, "Track Rider", Colors.green, () {}),
-              _buildActionCard(Icons.admin_panel_settings, "Support", Colors.red, () {}),
+              _buildActionCard(Icons.search, "Search Pharmacy", Colors.blue,
+                  () => onActionTap(1)),
+              _buildActionCard(Icons.medication, "Medicines", Colors.orange,
+                  () => onActionTap(1)),
+              _buildActionCard(
+                  Icons.delivery_dining, "Track Rider", Colors.green, () {}),
+              _buildActionCard(
+                  Icons.support_agent, "Support", Colors.red, () {}),
             ],
           ),
         ],
@@ -195,17 +194,22 @@ class PatientLandingPage extends StatelessWidget {
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(colors: [Color(0xFFff416c), Color(0xFFff4b2b)]),
+        gradient: const LinearGradient(
+            colors: [Color(0xFFff416c), Color(0xFFff4b2b)]),
       ),
       child: Row(
         children: [
           const Expanded(
-            child: Text("Emergency?\nFind medicine fast", 
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            child: Text("Emergency?\nFind medicine fast",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.red),
-            onPressed: onTap, 
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white, foregroundColor: Colors.red),
+            onPressed: onTap,
             child: const Text("Locate Now"),
           ),
         ],
@@ -213,22 +217,29 @@ class PatientLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCard(IconData icon, String title, Color color, VoidCallback onTap) {
+  Widget _buildActionCard(
+      IconData icon, String title, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4))
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 35, color: color),
             const SizedBox(height: 10),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            Text(title,
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ],
         ),
       ),
@@ -236,7 +247,7 @@ class PatientLandingPage extends StatelessWidget {
   }
 }
 
-// --- Profile Page (Cleaned Version) ---
+// --- Profile Page ---
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -248,15 +259,13 @@ class ProfilePage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const CircleAvatar(
-            radius: 50, 
-            backgroundColor: Color(0xFF2193b0), 
-            child: Icon(Icons.person, size: 50, color: Colors.white)
-          ),
+              radius: 50,
+              backgroundColor: Color(0xFF2193b0),
+              child: Icon(Icons.person, size: 50, color: Colors.white)),
           const SizedBox(height: 20),
-          Text(user?.email ?? "Guest User", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 10),
-          // Academic info removed as requested
-          const Text("Account Status: Active", style: TextStyle(color: Colors.grey)),
+          Text(user?.email ?? "Guest User",
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
         ],
       ),
     );
