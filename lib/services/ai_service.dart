@@ -1,50 +1,67 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AIService {
-  // Week 6: Gemini API Key Integration
-  static const String _apiKey = "AIzaSyApwRXLkgQORQ868IGZmPbl-CPmPUqN70o";
-
-  // Week 7: Chat History List
-  // This list will store the conversation to make the AI remember previous context
+  // তোমার দেওয়া একদম লেটেস্ট এপিআই কি এখানে আপডেট করা হয়েছে
+  static const String _apiKey = "AIzaSyCzzvsKLQzOEk98ttP82kr8JU0skTG1oFk";
   final List<Content> _chatHistory = [];
 
-  // Function to get medical advice with session memory
-  Future<String> getMedicalAdvice(String prompt) async {
+  Future<String> getMedicalAdvice(String prompt, String userId) async {
     try {
-      // Week 6: Initializing the Generative Model
+      // ফায়ারস্টোর থেকে ঔষধের লিস্ট আনা হচ্ছে
+      final medSnapshot = await FirebaseFirestore.instance.collection('medicines').get();
+      String inventory = medSnapshot.docs.isEmpty 
+          ? "No medicines currently listed." 
+          : medSnapshot.docs.map((doc) => doc['name']).join(", ");
+
+      // মডেল কনফিগারেশন: সেফটি সেটিংস 'none' করা হয়েছে যাতে মেডিকেল টপিক ব্লক না হয়
       final model = GenerativeModel(
-        model: 'gemini-1.5-flash',
+        model: 'gemini-1.5-flash', 
         apiKey: _apiKey,
+        safetySettings: [
+          SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none),
+          SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none),
+          SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none),
+          SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none),
+        ],
+        generationConfig: GenerationConfig(
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 500,
+        ),
       );
-
-      // Week 7: Starting a Chat Session with history support
-      final chatSession = model.startChat(history: _chatHistory);
-
-      // Week 6: Providing role-based instructions for medical safety
-      final instruction = "Role: Medical Assistant for HealthNode app. "
-          "Task: Provide accurate info about medicines and side effects. "
-          "Rule: Keep it brief and always advise to consult a doctor. "
-          "Question: $prompt";
-
-      // Week 7: Sending the message through the chat session
-      final response = await chatSession.sendMessage(Content.text(instruction));
-      final responseText = response.text ?? "I'm sorry, I couldn't generate a response.";
-
-      // Week 7: Manually updating local history to track the conversation
-      _chatHistory.add(Content.text("User: $prompt"));
-      _chatHistory.add(Content.model([TextPart(responseText)]));
       
-      return responseText;
-    } catch (e) {
-      // Week 6: Error handling for API connection issues
-      debugPrint("Gemini AI Error: $e");
-      return "Technical error: Please check your internet connection.";
-    }
-  }
+      // এআইকে কনটেক্সট দেওয়া হচ্ছে
+      final systemContext = "You are HealthNode Assistant. Available medicines in stock: $inventory. Instructions: Provide very short, helpful health advice. If a medicine is not in stock, let the user know.";
 
-  // Week 7: Utility function to clear chat history when needed
-  void resetChat() {
-    _chatHistory.clear();
+      // নতুন সেশন শুরু করা হচ্ছে
+      final chat = model.startChat(history: _chatHistory);
+      final response = await chat.sendMessage(Content.text("$systemContext\n\nUser Question: $prompt"));
+      
+      if (response.text == null || response.text!.isEmpty) {
+        return "AI response is empty. Please try a different question.";
+      }
+
+      // চ্যাট হিস্টোরি আপডেট
+      _chatHistory.add(Content.text("User: $prompt"));
+      _chatHistory.add(Content.model([TextPart(response.text!)]));
+
+      return response.text!;
+    } catch (e) {
+      print("Final Debug Error: $e");
+      
+      // এরর মেসেজগুলোকে ইউজার ফ্রেন্ডলি করা
+      String errorMessage = "Something went wrong.";
+      if (e.toString().contains('429')) {
+        errorMessage = "Quota exceeded! Please wait 60 seconds.";
+      } else if (e.toString().contains('403')) {
+        errorMessage = "API Key Error. Please check your Google AI Studio status.";
+      } else if (e.toString().contains('invalid')) {
+        errorMessage = "Invalid API Key. Please update the key.";
+      }
+
+      return "AI Notice: $errorMessage (Check VPN if needed)";
+    }
   }
 }

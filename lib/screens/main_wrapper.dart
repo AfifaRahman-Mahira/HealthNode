@@ -183,13 +183,15 @@ class PatientLandingPage extends StatelessWidget {
                         .collection('medicines')
                         .snapshots(),
                     builder: (context, snapshot) {
-                      if (!snapshot.hasData)
+                      if (!snapshot.hasData) {
                         return const Center(child: CircularProgressIndicator());
+                      }
 
                       var meds = snapshot.data!.docs;
-                      if (meds.isEmpty)
+                      if (meds.isEmpty) {
                         return const Center(
                             child: Text("No medicines found in database."));
+                      }
 
                       return ListView.builder(
                         controller: scrollController,

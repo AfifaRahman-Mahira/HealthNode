@@ -13,7 +13,7 @@ class DeliveryHome extends StatefulWidget {
 class _DeliveryHomeState extends State<DeliveryHome> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // অর্ডার স্ট্যাটাস আপডেট করার ফাংশন
+ 
   Future<void> _updateOrderStatus(String orderId) async {
     try {
       await _firestore.collection('orders').doc(orderId).update({
