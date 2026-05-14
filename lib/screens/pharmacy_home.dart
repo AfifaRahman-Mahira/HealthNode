@@ -12,14 +12,16 @@ class _PharmacyHomeState extends State<PharmacyHome> {
   final Color secondaryColor = const Color(0xFF6dd5ed);
   String searchQuery = "";
   String selectedCategory = "All";
+
+  // ক্যাটাগরি লিস্ট
   final List<String> categories = [
     "All",
     "Fever",
     "Pain",
     "Gastric",
-    "Antibiotic"
+    "Antibiotic",
+    "Vitamin"
   ];
-  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
@@ -51,12 +53,13 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     );
   }
 
+  // সার্চ বার ডিজাইন
   Widget _buildTopSearchBar() {
     return Container(
       padding: const EdgeInsets.all(16.0),
       color: Colors.white,
       child: TextField(
-        onChanged: (v) => setState(() => searchQuery = v.toLowerCase()),
+        onChanged: (v) => setState(() => searchQuery = v.toLowerCase().trim()),
         decoration: InputDecoration(
           hintText: "Search medicine...",
           prefixIcon: Icon(Icons.search, color: primaryColor),
@@ -70,6 +73,7 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     );
   }
 
+  // ক্যাটাগরি ফিল্টার
   Widget _buildCategoryFilter() {
     return Container(
       height: 60,
@@ -96,12 +100,20 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     );
   }
 
+  // মেইন মেডিসিন লিস্ট (ফায়ারবেস কানেকশনসহ)
   Widget _buildMedicineList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('medicines').snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text("No medicine found"));
+        }
+
+        // ফিল্টারিং লজিক (সার্চ এবং ক্যাটাগরি)
         var docs = snapshot.data!.docs.where((doc) {
           var data = doc.data() as Map<String, dynamic>;
           String name = (data['name'] ?? "").toString().toLowerCase();
@@ -110,25 +122,42 @@ class _PharmacyHomeState extends State<PharmacyHome> {
               (selectedCategory == "All" || cat == selectedCategory);
         }).toList();
 
+        if (docs.isEmpty) return const Center(child: Text("No match found"));
+
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: docs.length,
           itemBuilder: (context, index) {
-            var data = docs[index].data() as Map<String, dynamic>;
-            var docId = docs[index].id;
-            int qty = data['qty'] ?? 0;
+            var doc = docs[index];
+            var data = doc.data() as Map<String, dynamic>;
+            var docId = doc.id;
+
+            // স্টক ডাটা সেফলি রিড করা
+            int qty = 0;
+            if (data['qty'] != null) {
+              qty = (data['qty'] is int)
+                  ? data['qty']
+                  : (int.tryParse(data['qty'].toString()) ?? 0);
+            }
 
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15)),
+              elevation: 2,
               child: ListTile(
-                onTap: () =>
-                    _showMedicineDetails(data), // ক্লিক করলে ডিটেইলস দেখাবে
-                leading: Icon(Icons.medication, color: primaryColor),
+                onTap: () => _showMedicineDetails(data),
+                leading: CircleAvatar(
+                  backgroundColor: primaryColor.withOpacity(0.1),
+                  child: Icon(Icons.medication, color: primaryColor),
+                ),
                 title: Text(data['name'] ?? "N/A",
                     style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text("Price: ৳${data['price']} | Qty: $qty"),
+                subtitle: Text("Price: ৳${data['price']} | Stock: $qty",
+                    style: TextStyle(
+                        color: qty == 0 ? Colors.red : Colors.grey[700],
+                        fontWeight:
+                            qty == 0 ? FontWeight.bold : FontWeight.normal)),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -149,33 +178,39 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     );
   }
 
-  // ক্লিক করলে মেডিসিনের ডিটেইলস দেখানোর ফাংশন
+  // ডিটেইলস প্যানেল
   void _showMedicineDetails(Map<String, dynamic> data) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(25),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Center(
-                child: Icon(Icons.maximize, size: 40, color: Colors.grey)),
             Text(data['name'] ?? "Details",
                 style:
                     const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const Divider(),
+            const SizedBox(height: 10),
             _infoRow(Icons.category, "Category", data['category'] ?? "General"),
             _infoRow(Icons.money, "Price", "৳${data['price']}"),
-            _infoRow(Icons.storage, "In Stock", "${data['qty']} pcs"),
+            _infoRow(Icons.storage, "Current Stock", "${data['qty']} pcs"),
             const SizedBox(height: 20),
             SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Close"))),
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12))),
+                onPressed: () => Navigator.pop(context),
+                child:
+                    const Text("Close", style: TextStyle(color: Colors.white)),
+              ),
+            ),
           ],
         ),
       ),
@@ -186,13 +221,15 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(children: [
-        Icon(icon, size: 20),
+        Icon(icon, size: 20, color: primaryColor),
         const SizedBox(width: 10),
-        Text("$title: $val", style: const TextStyle(fontSize: 16))
+        Text("$title: ", style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(val),
       ]),
     );
   }
 
+  // এড বা এডিট ফর্ম
   void _showForm({String? docId, Map<String, dynamic>? currentData}) {
     final nameC = TextEditingController(text: currentData?['name']);
     final qtyC = TextEditingController(text: currentData?['qty']?.toString());
@@ -203,74 +240,89 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-                title: Text(docId == null ? "Add New" : "Edit Record"),
-                content: Column(mainAxisSize: MainAxisSize.min, children: [
-                  TextField(
-                      controller: nameC,
-                      decoration: const InputDecoration(labelText: "Name")),
-                  TextField(
-                      controller: qtyC,
-                      decoration: const InputDecoration(labelText: "Qty"),
-                      keyboardType: TextInputType.number),
-                  TextField(
-                      controller: priceC,
-                      decoration: const InputDecoration(labelText: "Price"),
-                      keyboardType: TextInputType.number),
-                  DropdownButton<String>(
-                    value: tempCat,
-                    isExpanded: true,
-                    items: categories
-                        .where((c) => c != "All")
-                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                        .toList(),
-                    onChanged: (v) => setDialogState(() => tempCat = v!),
-                  ),
-                ]),
-                actions: [
-                  ElevatedButton(
-                      onPressed: () async {
-                        final data = {
-                          'name': nameC.text,
-                          'qty': int.parse(qtyC.text),
-                          'price': double.parse(priceC.text),
-                          'category': tempCat
-                        };
-                        docId == null
-                            ? await FirebaseFirestore.instance
-                                .collection('medicines')
-                                .add(data)
-                            : await FirebaseFirestore.instance
-                                .collection('medicines')
-                                .doc(docId)
-                                .update(data);
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Save"))
-                ],
-              )),
+        builder: (context, setDialogState) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(docId == null ? "Add New Medicine" : "Edit Record"),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                  controller: nameC,
+                  decoration:
+                      const InputDecoration(labelText: "Medicine Name")),
+              TextField(
+                  controller: qtyC,
+                  decoration: const InputDecoration(labelText: "Quantity"),
+                  keyboardType: TextInputType.number),
+              TextField(
+                  controller: priceC,
+                  decoration: const InputDecoration(labelText: "Price (TK)"),
+                  keyboardType: TextInputType.number),
+              const SizedBox(height: 15),
+              DropdownButton<String>(
+                value: tempCat,
+                isExpanded: true,
+                items: categories
+                    .where((c) => c != "All")
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (v) => setDialogState(() => tempCat = v!),
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel")),
+            ElevatedButton(
+              onPressed: () async {
+                final data = {
+                  'name': nameC.text,
+                  'qty': int.tryParse(qtyC.text) ?? 0,
+                  'price': double.tryParse(priceC.text) ?? 0.0,
+                  'category': tempCat
+                };
+                if (docId == null) {
+                  await FirebaseFirestore.instance
+                      .collection('medicines')
+                      .add(data);
+                } else {
+                  await FirebaseFirestore.instance
+                      .collection('medicines')
+                      .doc(docId)
+                      .update(data);
+                }
+                Navigator.pop(context);
+              },
+              child: const Text("Save"),
+            )
+          ],
+        ),
+      ),
     );
   }
 
+  // ডিলিট কনফার্মেশন
   void _confirmDelete(String id) {
     showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-              title: const Text("Delete?"),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("No")),
-                TextButton(
-                    onPressed: () async {
-                      await FirebaseFirestore.instance
-                          .collection('medicines')
-                          .doc(id)
-                          .delete();
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Yes")),
-              ],
-            ));
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Medicine?"),
+        content: const Text("Are you sure you want to remove this item?"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: const Text("No")),
+          TextButton(
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('medicines')
+                    .doc(id)
+                    .delete();
+                Navigator.pop(context);
+              },
+              child: const Text("Yes", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
   }
 }

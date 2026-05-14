@@ -55,16 +55,17 @@ class _MainWrapperState extends State<MainWrapper> {
   }
 
   Widget _getHomeDashboard() {
-    if (userRole == "admin") {
-      return const AdminDashboard();
-    } else if (userRole == "pharmacist") {
-      return const PharmacyHome();
-    } else if (userRole == "rider") {
-      return const DeliveryHome();
-    } else if (userRole == "patient") {
-      return PatientLandingPage(onActionTap: _onTabChange);
-    } else {
-      return _buildGuestWelcome();
+    switch (userRole) {
+      case "admin":
+        return const AdminDashboard();
+      case "pharmacist":
+        return const PharmacyHome();
+      case "rider":
+        return const DeliveryHome();
+      case "patient":
+        return PatientLandingPage(onActionTap: _onTabChange);
+      default:
+        return _buildGuestWelcome();
     }
   }
 
@@ -130,6 +131,7 @@ class _MainWrapperState extends State<MainWrapper> {
           const SizedBox(height: 20),
           const Text("Welcome to HealthNode",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
           ElevatedButton(
             onPressed: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const LoginScreen())),
@@ -141,9 +143,106 @@ class _MainWrapperState extends State<MainWrapper> {
   }
 }
 
+// --- পেশেন্ট ল্যান্ডিং পেজ ---
 class PatientLandingPage extends StatelessWidget {
   final Function(int) onActionTap;
   const PatientLandingPage({super.key, required this.onActionTap});
+
+  // --- নতুন ফাংশন: নিচ থেকে ওষুধের লিস্ট দেখানোর জন্য ---
+  void _showMedicineBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const SizedBox(height: 15),
+                Container(
+                    width: 50,
+                    height: 5,
+                    decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10))),
+                const Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Text("Available Medicines",
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('medicines')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData)
+                        return const Center(child: CircularProgressIndicator());
+
+                      var meds = snapshot.data!.docs;
+                      if (meds.isEmpty)
+                        return const Center(
+                            child: Text("No medicines found in database."));
+
+                      return ListView.builder(
+                        controller: scrollController,
+                        itemCount: meds.length,
+                        itemBuilder: (context, index) {
+                          var data = meds[index].data() as Map<String, dynamic>;
+                          return ListTile(
+                            leading: const Icon(Icons.medication,
+                                color: Colors.orange),
+                            title: Text(data['name'] ?? "Unknown"),
+                            subtitle: Text("${data['price'] ?? 0} BDT"),
+                            trailing: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2193b0)),
+                              onPressed: () {
+                                _placeOrder(context, data['name'],
+                                    data['price'].toString());
+                                Navigator.pop(context);
+                              },
+                              child: const Text("Order",
+                                  style: TextStyle(color: Colors.white)),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // --- নতুন ফাংশন: ফায়ারবেসে অর্ডার সেভ করার জন্য ---
+  void _placeOrder(BuildContext context, String name, String price) {
+    FirebaseFirestore.instance.collection('orders').add({
+      'customerName': "Purovi Rahman",
+      'medicineName': name,
+      'price': price,
+      'status': 'Assigned',
+      'address': 'Gazipur, Tongi',
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text("$name Ordered! Rider will be notified."),
+          backgroundColor: Colors.green),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -176,12 +275,22 @@ class PatientLandingPage extends StatelessWidget {
             children: [
               _buildActionCard(Icons.search, "Search Pharmacy", Colors.blue,
                   () => onActionTap(1)),
+              // --- এই কার্ডে এখন শিট ওপেন হবে ---
               _buildActionCard(Icons.medication, "Medicines", Colors.orange,
-                  () => onActionTap(1)),
+                  () => _showMedicineBottomSheet(context)),
               _buildActionCard(
-                  Icons.delivery_dining, "Track Rider", Colors.green, () {}),
-              _buildActionCard(
-                  Icons.support_agent, "Support", Colors.red, () {}),
+                  Icons.delivery_dining, "Track Rider", Colors.green, () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text(
+                          "Tracking feature is currently in development.")),
+                );
+              }),
+              _buildActionCard(Icons.support_agent, "Support", Colors.red, () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Support team is offline.")),
+                );
+              }),
             ],
           ),
         ],
@@ -247,26 +356,48 @@ class PatientLandingPage extends StatelessWidget {
   }
 }
 
-// --- Profile Page ---
+// --- প্রোফাইল পেজ ---
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircleAvatar(
+    String name = user?.email?.split('@')[0].toUpperCase() ?? "USER";
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircleAvatar(
               radius: 50,
               backgroundColor: Color(0xFF2193b0),
-              child: Icon(Icons.person, size: 50, color: Colors.white)),
-          const SizedBox(height: 20),
-          Text(user?.email ?? "Guest User",
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-        ],
+              child: Icon(Icons.person, size: 50, color: Colors.white),
+            ),
+            const SizedBox(height: 20),
+            Text(name,
+                style:
+                    const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(user?.email ?? "email@example.com",
+                style: const TextStyle(color: Colors.grey)),
+            const SizedBox(height: 30),
+            const Divider(indent: 50, endIndent: 50),
+            ListTile(
+              leading: const Icon(Icons.shopping_bag_outlined),
+              title: const Text("My Orders"),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text("Settings"),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+              onTap: () {},
+            ),
+          ],
+        ),
       ),
     );
   }
