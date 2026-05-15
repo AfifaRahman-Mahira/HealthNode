@@ -12,7 +12,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final nameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
-  final AuthService _authService = AuthService(); // সার্ভিস ইনিশিয়ালাইজ
+  final AuthService _authService = AuthService(); // সার্ভিস ইনিশিয়ালাইজ
 
   String selectedRole = 'Patient';
   final List<String> roles = ['Patient', 'Pharmacist', 'Rider', 'Admin'];
@@ -22,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (nameCtrl.text.isEmpty ||
         emailCtrl.text.isEmpty ||
         passCtrl.text.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Please fill all fields!")));
@@ -38,7 +39,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         role: selectedRole,
       );
 
-      if (result == "success" && mounted) {
+      if (!mounted) return;
+
+      if (result == "success") {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Registration Successful! Please login."),
@@ -46,12 +49,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         );
         Navigator.pop(context);
-      } else if (mounted) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result ?? "Error occurred")),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
@@ -116,7 +120,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 20),
                     DropdownButtonFormField<String>(
-                      value: selectedRole,
+                      value: selectedRole, // initialValue এর বদলে value ব্যবহার করা ভালো
                       decoration: const InputDecoration(
                         labelText: "Select Role",
                         border: OutlineInputBorder(),

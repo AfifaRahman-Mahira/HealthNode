@@ -21,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> login() async {
     if (_email.text.isEmpty || _pass.text.isEmpty) {
+      if (!mounted) return; // async gap check
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill all fields!")),
       );
@@ -36,12 +37,14 @@ class _LoginScreenState extends State<LoginScreen> {
         selectedRole,
       );
 
-      if (userModel != null && mounted) {
+      if (!mounted) return; // async gap check
+
+      if (userModel != null) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const MainWrapper()),
         );
-      } else if (mounted) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Login Failed: Role mismatched or invalid credentials."),
@@ -50,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return; // async gap check
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
       );
@@ -72,7 +76,8 @@ class _LoginScreenState extends State<LoginScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(25),
             child: Card(
-              color: Colors.white.withOpacity(0.1),
+              // Updated deprecated withOpacity to withValues
+              color: Colors.white.withValues(alpha: 0.1), 
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -122,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Theme(
                       data: Theme.of(context).copyWith(canvasColor: const Color(0xFF2C5364)),
                       child: DropdownButtonFormField<String>(
-                        value: selectedRole,
+                        initialValue: selectedRole,
                         style: const TextStyle(color: Colors.white),
                         decoration: const InputDecoration(
                           labelText: "Select Role",

@@ -72,7 +72,9 @@ class _MainWrapperState extends State<MainWrapper> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF2193b0))),
+      );
     }
 
     Widget currentBody;
@@ -94,7 +96,7 @@ class _MainWrapperState extends State<MainWrapper> {
         actions: [
           if (userRole != null)
             IconButton(
-              icon: const Icon(Icons.logout, color: Colors.redAccent),
+              icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
                 if (mounted) {
@@ -107,16 +109,29 @@ class _MainWrapperState extends State<MainWrapper> {
             ),
         ],
       ),
-      body: currentBody,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: const Color(0xFF2193b0),
-        onTap: _onTabChange,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
+      // Added AnimatedSwitcher for "Joss" screen transitions
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: currentBody,
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 1),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          selectedItemColor: const Color(0xFF2193b0),
+          unselectedItemColor: Colors.grey,
+          type: BottomNavigationBarType.fixed,
+          onTap: _onTabChange,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
+            BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+          ],
+        ),
       ),
     );
   }
@@ -127,15 +142,16 @@ class _MainWrapperState extends State<MainWrapper> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.medical_services_outlined,
-              size: 80, color: Colors.grey),
+              size: 80, color: Color(0xFF2193b0)),
           const SizedBox(height: 20),
           const Text("Welcome to HealthNode",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2193b0)),
             onPressed: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const LoginScreen())),
-            child: const Text("Go to Login"),
+            child: const Text("Go to Login", style: TextStyle(color: Colors.white)),
           )
         ],
       ),
@@ -148,79 +164,76 @@ class PatientLandingPage extends StatelessWidget {
   final Function(int) onActionTap;
   const PatientLandingPage({super.key, required this.onActionTap});
 
-  // --- নতুন ফাংশন: নিচ থেকে ওষুধের লিস্ট দেখানোর জন্য ---
   void _showMedicineBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return DraggableScrollableSheet(
           initialChildSize: 0.6,
           maxChildSize: 0.9,
-          expand: false,
           builder: (context, scrollController) {
-            return Column(
-              children: [
-                const SizedBox(height: 15),
-                Container(
-                    width: 50,
-                    height: 5,
-                    decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10))),
-                const Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: Text("Available Medicines",
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                ),
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('medicines')
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      var meds = snapshot.data!.docs;
-                      if (meds.isEmpty) {
-                        return const Center(
-                            child: Text("No medicines found in database."));
-                      }
-
-                      return ListView.builder(
-                        controller: scrollController,
-                        itemCount: meds.length,
-                        itemBuilder: (context, index) {
-                          var data = meds[index].data() as Map<String, dynamic>;
-                          return ListTile(
-                            leading: const Icon(Icons.medication,
-                                color: Colors.orange),
-                            title: Text(data['name'] ?? "Unknown"),
-                            subtitle: Text("${data['price'] ?? 0} BDT"),
-                            trailing: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2193b0)),
-                              onPressed: () {
-                                _placeOrder(context, data['name'],
-                                    data['price'].toString());
-                                Navigator.pop(context);
-                              },
-                              child: const Text("Order",
-                                  style: TextStyle(color: Colors.white)),
-                            ),
-                          );
-                        },
-                      );
-                    },
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 15),
+                  Container(
+                      width: 50,
+                      height: 5,
+                      decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10))),
+                  const Padding(
+                    padding: EdgeInsets.all(20.0),
+                    child: Text("Available Medicines",
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('medicines')
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+
+                        var meds = snapshot.data!.docs;
+                        return ListView.builder(
+                          controller: scrollController,
+                          itemCount: meds.length,
+                          itemBuilder: (context, index) {
+                            var data = meds[index].data() as Map<String, dynamic>;
+                            return ListTile(
+                              leading: const CircleAvatar(
+                                backgroundColor: Color(0xFFFFF3E0),
+                                child: Icon(Icons.medication, color: Colors.orange),
+                              ),
+                              title: Text(data['name'] ?? "Unknown", style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text("${data['price'] ?? 0} BDT"),
+                              trailing: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2193b0),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                onPressed: () {
+                                  _placeOrder(context, data['name'], data['price'].toString());
+                                  Navigator.pop(context);
+                                },
+                                child: const Text("Order", style: TextStyle(color: Colors.white)),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             );
           },
         );
@@ -228,20 +241,23 @@ class PatientLandingPage extends StatelessWidget {
     );
   }
 
-  // --- নতুন ফাংশন: ফায়ারবেসে অর্ডার সেভ করার জন্য ---
-  void _placeOrder(BuildContext context, String name, String price) {
-    FirebaseFirestore.instance.collection('orders').add({
-      'customerName': "Purovi Rahman",
+  void _placeOrder(BuildContext context, String name, String price) async {
+    final user = FirebaseAuth.instance.currentUser;
+    
+    // logic to save order with correct patient ID
+    await FirebaseFirestore.instance.collection('orders').add({
+      'patientId': user?.uid,
       'medicineName': name,
       'price': price,
-      'status': 'Assigned',
-      'address': 'Gazipur, Tongi',
+      'status': 'Pending',
+      'address': 'Current Location',
       'timestamp': FieldValue.serverTimestamp(),
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content: Text("$name Ordered! Rider will be notified."),
+          content: Text("$name Ordered Successfully!"),
+          behavior: SnackBarBehavior.floating,
           backgroundColor: Colors.green),
     );
   }
@@ -257,8 +273,7 @@ class PatientLandingPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text("Hello, $displayName!",
-              style:
-                  const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
           const Text("Explore our health services today",
               style: TextStyle(color: Colors.grey)),
           const SizedBox(height: 25),
@@ -277,15 +292,12 @@ class PatientLandingPage extends StatelessWidget {
             children: [
               _buildActionCard(Icons.search, "Search Pharmacy", Colors.blue,
                   () => onActionTap(1)),
-              // --- এই কার্ডে এখন শিট ওপেন হবে ---
               _buildActionCard(Icons.medication, "Medicines", Colors.orange,
                   () => _showMedicineBottomSheet(context)),
               _buildActionCard(
                   Icons.delivery_dining, "Track Rider", Colors.green, () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text(
-                          "Tracking feature is currently in development.")),
+                  const SnackBar(content: Text("Tracking feature is coming soon!")),
                 );
               }),
               _buildActionCard(Icons.support_agent, "Support", Colors.red, () {
@@ -332,6 +344,7 @@ class PatientLandingPage extends StatelessWidget {
       IconData icon, String title, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -349,8 +362,7 @@ class PatientLandingPage extends StatelessWidget {
             Icon(icon, size: 35, color: color),
             const SizedBox(height: 10),
             Text(title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ],
         ),
       ),
@@ -358,7 +370,7 @@ class PatientLandingPage extends StatelessWidget {
   }
 }
 
-// --- প্রোফাইল পেজ ---
+
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -380,20 +392,21 @@ class ProfilePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(name,
-                style:
-                    const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             Text(user?.email ?? "email@example.com",
                 style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 30),
             const Divider(indent: 50, endIndent: 50),
             ListTile(
-              leading: const Icon(Icons.shopping_bag_outlined),
+              leading: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF2193b0)),
               title: const Text("My Orders"),
               trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-              onTap: () {},
+              onTap: () {
+                // You can navigate to an order history page here
+              },
             ),
             ListTile(
-              leading: const Icon(Icons.settings_outlined),
+              leading: const Icon(Icons.settings_outlined, color: Colors.grey),
               title: const Text("Settings"),
               trailing: const Icon(Icons.arrow_forward_ios, size: 14),
               onTap: () {},
