@@ -4,6 +4,7 @@ class UserModel {
   final String email;
   final String role; 
   final String? pharmacyName;
+  final String? pharmacyLicense; 
 
   UserModel({
     required this.uid,
@@ -11,6 +12,7 @@ class UserModel {
     required this.email,
     required this.role,
     this.pharmacyName,
+    this.pharmacyLicense, 
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data) {
@@ -20,6 +22,7 @@ class UserModel {
       email: data['email'] ?? '',
       role: data['role'] ?? 'Patient',
       pharmacyName: data['pharmacyName'],
+      pharmacyLicense: data['pharmacyLicense'], 
     );
   }
 }
