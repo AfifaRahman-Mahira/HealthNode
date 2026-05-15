@@ -13,7 +13,7 @@ class _PharmacyHomeState extends State<PharmacyHome> {
   String searchQuery = "";
   String selectedCategory = "All";
 
-  // ক্যাটাগরি লিস্ট
+ 
   final List<String> categories = [
     "All",
     "Fever",
@@ -53,7 +53,7 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     );
   }
 
-  // সার্চ বার ডিজাইন
+
   Widget _buildTopSearchBar() {
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -73,7 +73,7 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     );
   }
 
-  // ক্যাটাগরি ফিল্টার
+
   Widget _buildCategoryFilter() {
     return Container(
       height: 60,
@@ -100,7 +100,7 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     );
   }
 
-  // মেইন মেডিসিন লিস্ট (ফায়ারবেস কানেকশনসহ)
+
   Widget _buildMedicineList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('medicines').snapshots(),
@@ -113,7 +113,7 @@ class _PharmacyHomeState extends State<PharmacyHome> {
           return const Center(child: Text("No medicine found"));
         }
 
-        // ফিল্টারিং লজিক (সার্চ এবং ক্যাটাগরি)
+      
         var docs = snapshot.data!.docs.where((doc) {
           var data = doc.data() as Map<String, dynamic>;
           String name = (data['name'] ?? "").toString().toLowerCase();
@@ -132,7 +132,7 @@ class _PharmacyHomeState extends State<PharmacyHome> {
             var data = doc.data() as Map<String, dynamic>;
             var docId = doc.id;
 
-            // স্টক ডাটা সেফলি রিড করা
+   
             int qty = 0;
             if (data['qty'] != null) {
               qty = (data['qty'] is int)
@@ -178,7 +178,7 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     );
   }
 
-  // ডিটেইলস প্যানেল
+
   void _showMedicineDetails(Map<String, dynamic> data) {
     showModalBottomSheet(
       context: context,
@@ -229,7 +229,7 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     );
   }
 
-  // এড বা এডিট ফর্ম
+
   void _showForm({String? docId, Map<String, dynamic>? currentData}) {
     final nameC = TextEditingController(text: currentData?['name']);
     final qtyC = TextEditingController(text: currentData?['qty']?.toString());
@@ -302,7 +302,7 @@ class _PharmacyHomeState extends State<PharmacyHome> {
     );
   }
 
-  // ডিলিট কনফার্মেশন
+
   void _confirmDelete(String id) {
     showDialog(
       context: context,

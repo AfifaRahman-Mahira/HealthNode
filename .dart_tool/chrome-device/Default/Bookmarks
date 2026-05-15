@@ -1,0 +1,52 @@
+{
+   "checksum": "e0579d34b8cadcdec15ad3926e6d50c5",
+   "roots": {
+      "bookmark_bar": {
+         "children": [  ],
+         "date_added": "13423330395224632",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "0bc5d13f-2cba-5d74-951f-3f233fe6c908",
+         "id": "1",
+         "name": "Bookmarks bar",
+         "type": "folder"
+      },
+      "other": {
+         "children": [ {
+            "date_added": "13384531986295824",
+            "date_last_used": "0",
+            "guid": "20dd0985-5c35-44dd-8260-1711c2323a46",
+            "id": "8",
+            "name": "Your Link is Ready - Insurance Secures Your Family Protection",
+            "type": "url",
+            "url": "https://sub4unlock.pro/FL.php?$=1337814&rf=ok"
+         } ],
+         "date_added": "13423330395224632",
+         "date_last_used": "0",
+         "date_modified": "13384531986295824",
+         "guid": "82b081ec-3dd3-529c-8475-ab6c344590dd",
+         "id": "2",
+         "name": "Other bookmarks",
+         "type": "folder"
+      },
+      "synced": {
+         "children": [ {
+            "date_added": "13263624203359862",
+            "date_last_used": "0",
+            "guid": "1c23b8f3-6d01-4c9a-aa86-2b1f043013de",
+            "id": "7",
+            "name": "Confirm login",
+            "type": "url",
+            "url": "https://m.facebook.com/v6.0/dialog/oauth?client_id=2036793259884297&cbt=1619150595467&e2e=%7B%22init%22%3A1619150595467%7D&ies=1&sdk=android-6.3.0&sso=chrome_custom_tab&scope=public_profile%2Cuser_friends%2Cemail&state=%7B%220_auth_logger_id%22%3A%2261c1f6e7-2dfe-44fd-bc4f-36606103f4b6%22%2C%223_method%22%3A%22custom_tab%22%2C%227_challenge%22%3A%22aogs89d76cv5mkq33p4k%22%7D&default_audience=friends&redirect_uri=fbconnect%3A%2F%2Fcct.com.dts.freefireth&auth_type=rerequest&response_type=token%2Csigned_request%2Cgraph_domain&return_scopes=true"
+         } ],
+         "date_added": "13423330395224632",
+         "date_last_used": "0",
+         "date_modified": "13263624203359862",
+         "guid": "4cf2e351-0e85-532b-bb37-df045d8f8d0f",
+         "id": "3",
+         "name": "Mobile bookmarks",
+         "type": "folder"
+      }
+   },
+   "version": 1
+}

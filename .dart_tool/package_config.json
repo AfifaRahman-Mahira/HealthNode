@@ -182,12 +182,6 @@
       "languageVersion": "3.9"
     },
     {
-      "name": "flutter_plugin_android_lifecycle",
-      "rootUri": "file:///C:/Users/user/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.34",
-      "packageUri": "lib/",
-      "languageVersion": "3.9"
-    },
-    {
       "name": "flutter_test",
       "rootUri": "file:///C:/Users/user/Downloads/flutter_windows_3.35.6-stable/flutter/packages/flutter_test",
       "packageUri": "lib/",

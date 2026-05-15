@@ -4,18 +4,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 class AIService {
-
-  static const String _apiKey = "AIzaSyA-gDagZSKZ5U6Tu4jsLwdOYBvfZQ-L6O4";
+  // Use a key from a BRAND NEW project here
+  static const String _apiKey = "AIzaSyCKD7pbJ8MCzDeLYXS1m-peeMLXFAIq94c"; 
   
-  //  Using 'v1' instead of 'v1beta' to avoid 404
-  static const String _url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$_apiKey";
+  // v1beta is required for gemini-1.5-flash-latest
+  static const String _url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=$_apiKey";
 
   Future<String> getMedicalAdvice(String prompt, String userId) async {
     try {
       final medSnapshot = await FirebaseFirestore.instance.collection('medicines').get();
       String inventory = medSnapshot.docs.isEmpty 
           ? "No stock available" 
-          : medSnapshot.docs.map((doc) => doc['name']).join(", ");
+          : medSnapshot.docs.map((doc) => doc['name'] as String).join(", ");
 
       final response = await http.post(
         Uri.parse(_url),
@@ -23,14 +23,9 @@ class AIService {
         body: jsonEncode({
           "contents": [{
             "parts": [{
-              "text": "System: You are HealthNode AI. Inventory: $inventory. Answer in 1 short sentence. User Question: $prompt"
+              "text": "System: You are HealthNode AI assistant. Inventory: $inventory. User: $prompt. Provide a short, one-sentence medical answer in English."
             }]
-          }],
-          // Explicit generation config to ensure compatibility
-          "generationConfig": {
-            "temperature": 0.7,
-            "maxOutputTokens": 100
-          }
+          }]
         }),
       );
 
@@ -38,13 +33,11 @@ class AIService {
         final data = jsonDecode(response.body);
         return data['candidates'][0]['content']['parts'][0]['text'];
       } else {
-        // Detailed log for debugging
-        debugPrint("API Response Error: ${response.body}");
-        return "AI Module under server maintenance.";
+        debugPrint("API Error Detail: ${response.body}");
+        return "AI Module error (${response.statusCode}).";
       }
     } catch (e) {
-      debugPrint(" Request Failed: $e");
-      return "Connection Error. Please check.";
+      return "Connection failed.";
     }
   }
 }

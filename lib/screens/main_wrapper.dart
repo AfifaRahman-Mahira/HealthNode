@@ -54,6 +54,7 @@ class _MainWrapperState extends State<MainWrapper> {
     });
   }
 
+  // Determines which dashboard to show on the first tab
   Widget _getHomeDashboard() {
     switch (userRole) {
       case "admin":
@@ -69,21 +70,26 @@ class _MainWrapperState extends State<MainWrapper> {
     }
   }
 
+  // Handles role-based page selection for the whole app
+  Widget _getSelectedPage() {
+    if (_currentIndex == 0) return _getHomeDashboard();
+
+    // Patient has: 0: Home, 1: Search (PatientHome), 2: Profile
+    if (userRole == "patient") {
+      if (_currentIndex == 1) return const PatientHome();
+      return const ProfilePage();
+    }
+
+    // Other roles (Admin/Pharmacist/Rider) have: 0: Home, 1: Profile
+    return const ProfilePage();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: Color(0xFF2193b0))),
       );
-    }
-
-    Widget currentBody;
-    if (_currentIndex == 0) {
-      currentBody = _getHomeDashboard();
-    } else if (_currentIndex == 1) {
-      currentBody = const PatientHome();
-    } else {
-      currentBody = const ProfilePage();
     }
 
     return Scaffold(
@@ -109,13 +115,12 @@ class _MainWrapperState extends State<MainWrapper> {
             ),
         ],
       ),
-      // Added AnimatedSwitcher for "Joss" screen transitions
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
-        child: currentBody,
+        child: _getSelectedPage(),
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           boxShadow: [
             BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 1),
           ],
@@ -126,14 +131,26 @@ class _MainWrapperState extends State<MainWrapper> {
           unselectedItemColor: Colors.grey,
           type: BottomNavigationBarType.fixed,
           onTap: _onTabChange,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-            BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-          ],
+          items: _buildNavItems(),
         ),
       ),
     );
+  }
+
+  // Generates different nav bars for different roles
+  List<BottomNavigationBarItem> _buildNavItems() {
+    if (userRole == "patient") {
+      return const [
+        BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
+        BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+      ];
+    } else {
+      return const [
+        BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: "Dashboard"),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+      ];
+    }
   }
 
   Widget _buildGuestWelcome() {
@@ -141,16 +158,13 @@ class _MainWrapperState extends State<MainWrapper> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.medical_services_outlined,
-              size: 80, color: Color(0xFF2193b0)),
+          const Icon(Icons.medical_services_outlined, size: 80, color: Color(0xFF2193b0)),
           const SizedBox(height: 20),
-          const Text("Welcome to HealthNode",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const Text("Welcome to HealthNode", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2193b0)),
-            onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const LoginScreen())),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
             child: const Text("Go to Login", style: TextStyle(color: Colors.white)),
           )
         ],
@@ -159,7 +173,7 @@ class _MainWrapperState extends State<MainWrapper> {
   }
 }
 
-// --- পেশেন্ট ল্যান্ডিং পেজ ---
+// --- Patient Landing Page (Fixed Actions) ---
 class PatientLandingPage extends StatelessWidget {
   final Function(int) onActionTap;
   const PatientLandingPage({super.key, required this.onActionTap});
@@ -182,27 +196,16 @@ class PatientLandingPage extends StatelessWidget {
               child: Column(
                 children: [
                   const SizedBox(height: 15),
-                  Container(
-                      width: 50,
-                      height: 5,
-                      decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(10))),
+                  Container(width: 50, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
                   const Padding(
                     padding: EdgeInsets.all(20.0),
-                    child: Text("Available Medicines",
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    child: Text("Available Medicines", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   ),
                   Expanded(
                     child: StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('medicines')
-                          .snapshots(),
+                      stream: FirebaseFirestore.instance.collection('medicines').snapshots(),
                       builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-
+                        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                         var meds = snapshot.data!.docs;
                         return ListView.builder(
                           controller: scrollController,
@@ -210,10 +213,7 @@ class PatientLandingPage extends StatelessWidget {
                           itemBuilder: (context, index) {
                             var data = meds[index].data() as Map<String, dynamic>;
                             return ListTile(
-                              leading: const CircleAvatar(
-                                backgroundColor: Color(0xFFFFF3E0),
-                                child: Icon(Icons.medication, color: Colors.orange),
-                              ),
+                              leading: const CircleAvatar(backgroundColor: Color(0xFFFFF3E0), child: Icon(Icons.medication, color: Colors.orange)),
                               title: Text(data['name'] ?? "Unknown", style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text("${data['price'] ?? 0} BDT"),
                               trailing: ElevatedButton(
@@ -243,8 +243,6 @@ class PatientLandingPage extends StatelessWidget {
 
   void _placeOrder(BuildContext context, String name, String price) async {
     final user = FirebaseAuth.instance.currentUser;
-    
-    // logic to save order with correct patient ID
     await FirebaseFirestore.instance.collection('orders').add({
       'patientId': user?.uid,
       'medicineName': name,
@@ -255,10 +253,7 @@ class PatientLandingPage extends StatelessWidget {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text("$name Ordered Successfully!"),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.green),
+      SnackBar(content: Text("$name Ordered Successfully!"), behavior: SnackBarBehavior.floating, backgroundColor: Colors.green),
     );
   }
 
@@ -272,15 +267,12 @@ class PatientLandingPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Hello, $displayName!",
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-          const Text("Explore our health services today",
-              style: TextStyle(color: Colors.grey)),
+          Text("Hello, $displayName!", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+          const Text("Explore our health services today", style: TextStyle(color: Colors.grey)),
           const SizedBox(height: 25),
           _buildEmergencyBanner(() => onActionTap(1)),
           const SizedBox(height: 30),
-          const Text("Quick Actions",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text("Quick Actions", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 15),
           GridView.count(
             shrinkWrap: true,
@@ -290,20 +282,13 @@ class PatientLandingPage extends StatelessWidget {
             mainAxisSpacing: 15,
             childAspectRatio: 1.3,
             children: [
-              _buildActionCard(Icons.search, "Search Pharmacy", Colors.blue,
-                  () => onActionTap(1)),
-              _buildActionCard(Icons.medication, "Medicines", Colors.orange,
-                  () => _showMedicineBottomSheet(context)),
-              _buildActionCard(
-                  Icons.delivery_dining, "Track Rider", Colors.green, () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Tracking feature is coming soon!")),
-                );
+              _buildActionCard(Icons.search, "Search Pharmacy", Colors.blue, () => onActionTap(1)),
+              _buildActionCard(Icons.medication, "Medicines", Colors.orange, () => _showMedicineBottomSheet(context)),
+              _buildActionCard(Icons.delivery_dining, "Track Rider", Colors.green, () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Tracking feature is coming soon!")));
               }),
               _buildActionCard(Icons.support_agent, "Support", Colors.red, () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Support team is offline.")),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Support team is offline.")));
               }),
             ],
           ),
@@ -317,21 +302,13 @@ class PatientLandingPage extends StatelessWidget {
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-            colors: [Color(0xFFff416c), Color(0xFFff4b2b)]),
+        gradient: const LinearGradient(colors: [Color(0xFFff416c), Color(0xFFff4b2b)]),
       ),
       child: Row(
         children: [
-          const Expanded(
-            child: Text("Emergency?\nFind medicine fast",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
-          ),
+          const Expanded(child: Text("Emergency?\nFind medicine fast", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white, foregroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.red),
             onPressed: onTap,
             child: const Text("Locate Now"),
           ),
@@ -340,8 +317,7 @@ class PatientLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCard(
-      IconData icon, String title, Color color, VoidCallback onTap) {
+  Widget _buildActionCard(IconData icon, String title, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -349,20 +325,14 @@ class PatientLandingPage extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4))
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 35, color: color),
             const SizedBox(height: 10),
-            Text(title,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ],
         ),
       ),
@@ -370,7 +340,7 @@ class PatientLandingPage extends StatelessWidget {
   }
 }
 
-
+// --- Profile Page ---
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -385,25 +355,17 @@ class ProfilePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircleAvatar(
-              radius: 50,
-              backgroundColor: Color(0xFF2193b0),
-              child: Icon(Icons.person, size: 50, color: Colors.white),
-            ),
+            const CircleAvatar(radius: 50, backgroundColor: Color(0xFF2193b0), child: Icon(Icons.person, size: 50, color: Colors.white)),
             const SizedBox(height: 20),
-            Text(name,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            Text(user?.email ?? "email@example.com",
-                style: const TextStyle(color: Colors.grey)),
+            Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(user?.email ?? "email@example.com", style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 30),
             const Divider(indent: 50, endIndent: 50),
             ListTile(
               leading: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF2193b0)),
               title: const Text("My Orders"),
               trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-              onTap: () {
-                // You can navigate to an order history page here
-              },
+              onTap: () {},
             ),
             ListTile(
               leading: const Icon(Icons.settings_outlined, color: Colors.grey),
